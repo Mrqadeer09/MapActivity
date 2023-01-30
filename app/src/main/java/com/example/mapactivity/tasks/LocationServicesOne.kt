@@ -1,4 +1,4 @@
-package com.example.mapactivity
+package com.example.mapactivity.tasks
 
 import android.Manifest
 import android.app.Service
@@ -15,7 +15,7 @@ import com.google.android.gms.location.LocationListener
 import com.google.android.gms.location.LocationServices
 
 
-class LocationServicesOne : Service(), LocationListener {
+open class LocationServicesOne : Service(), LocationListener {
     protected var locationManager: LocationManager? = null
     var checkGPS = false
     var checkNetwork = false
@@ -30,7 +30,7 @@ class LocationServicesOne : Service(), LocationListener {
     }
 
     override fun onLocationChanged(location: Location) {
-         Toast.makeText(getApplicationContext(), ""+location.latitude + location.longitude, Toast.LENGTH_LONG).show();
+         Toast.makeText(applicationContext, ""+location.latitude + location.longitude, Toast.LENGTH_LONG).show();
     }
 
 

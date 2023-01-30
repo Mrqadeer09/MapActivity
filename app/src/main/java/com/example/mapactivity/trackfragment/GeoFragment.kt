@@ -1,28 +1,25 @@
-package com.example.mapactivity
+package com.example.mapactivity.trackfragment
 
 import android.Manifest
-import android.annotation.SuppressLint
+
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-/*import com.example.mapactivity.DirectionsJSONParser.downloadUrl
-import com.example.mapactivity.DirectionsJSONParser.getDirectionsUrl*/
-import com.example.mapactivity.trackfragment.Utils.REQUEST_BACKGROUND_LOCATION_PERMISSIONS_REQUEST_CODE
-import com.example.mapactivity.trackfragment.Utils.REQUEST_FINE_LOCATION_PERMISSIONS_REQUEST_CODE
-import com.example.mapactivity.trackfragment.Utils.drawRoute
-import com.example.mapactivity.trackfragment.Utils.requestPermissionWithRationale
-import com.example.mapactivity.databinding.ActivityMapsBinding
-import com.example.mapactivity.models.*
+import androidx.fragment.app.Fragment
+import com.example.mapactivity.R
+import com.example.mapactivity.databinding.FragmentGeoBinding
+import com.example.mapactivity.models.PermissionRequestType
 import com.example.mapactivity.tasks.GetDirection
 import com.google.android.gms.common.api.GoogleApiClient
 import com.google.android.gms.location.*
@@ -30,16 +27,27 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.*
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.Polyline
 import com.google.android.libraries.places.api.Places
 import com.google.android.material.snackbar.Snackbar
 import java.text.MessageFormat
 
 
+class GeoFragment : Fragment(), OnMapReadyCallback {
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+
+        binding = FragmentGeoBinding.inflate(layoutInflater, container, false)
+        return binding.root
+    }
 
 
-@RequiresApi(Build.VERSION_CODES.M)
-class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
+    //main activity
     var lastKnownLocation = null
     private fun updateLocationUI() {
         if (mMap == null) {
@@ -78,7 +86,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
 
-    fun hasPermission(permission: String): Boolean {
+    private fun hasPermission(permission: String): Boolean {
 
         // Background permissions didn't exit prior to Q, so it's approved by default.
         if (permission == Manifest.permission.ACCESS_BACKGROUND_LOCATION && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
@@ -86,7 +94,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         return ActivityCompat.checkSelfPermission(
-            this, permission
+            requireContext(), permission
         ) == PackageManager.PERMISSION_GRANTED
     }
 
@@ -99,28 +107,23 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private var permissionRequestType: PermissionRequestType? = null
-    private lateinit var binding: ActivityMapsBinding
+    private lateinit var binding: FragmentGeoBinding
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     var locationRequest: LocationRequest? = null
 
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        binding = ActivityMapsBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         if (ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_FINE_LOCATION
+                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_COARSE_LOCATION
+                requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             requestFineLocationPermission()
             requestBackgroundLocationPermission()
-
-
             return
         } else {
 
@@ -145,7 +148,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.download))
                             )
 
-                            findViewById<TextView>(R.id.tvLoc).setText(
+                            binding.tvLoc.setText(
                                 MessageFormat.format(
                                     "Lat: {0} Long: {1} Accuracy: {2}",
                                     location.latitude,
@@ -157,47 +160,51 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     }
                 }
             }
-            fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+            fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
             fusedLocationClient.lastLocation.addOnSuccessListener {
                 Toast.makeText(
-                    this, ":latitude${it.latitude} longitude${it.longitude}", Toast.LENGTH_SHORT
+                    requireActivity(),
+                    ":latitude${it.latitude} longitude${it.longitude}",
+                    Toast.LENGTH_SHORT
                 ).show()
                 Log.d("TAG", "onCreate:latitude${it.latitude}longitude${it.longitude} ")
             }
             fusedLocationClient.requestLocationUpdates(
                 locationRequest!!, locationCallback, Looper.getMainLooper()
-            );
+            )
 
 
         }
 
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
-        mapFragment.getMapAsync(this)
+        val mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment?
+//        val mapFragment = requireActivity().supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
+//        mapFragment.getMapAsync(this)
 
 
         // Fetching API_KEY which we wrapped
-        val ai: ApplicationInfo = applicationContext.packageManager.getApplicationInfo(
-            applicationContext.packageName,
-            PackageManager.GET_META_DATA
-        )
+        val ai: ApplicationInfo =
+            requireActivity().applicationContext.packageManager.getApplicationInfo(
+                requireActivity().applicationContext.packageName, PackageManager.GET_META_DATA
+            )
         val value = ai.metaData["com.google.android.geo.API_KEY"]
         val apiKey = value.toString()
 
         // Initializing the Places API with the help of our API_KEY
         if (!Places.isInitialized()) {
-            Places.initialize(applicationContext, apiKey)
+            Places.initialize(requireActivity().applicationContext, apiKey)
         }
 
 
-        val gd = findViewById<Button>(R.id.directions)
-        gd.setOnClickListener {
-            mapFragment.getMapAsync {
+
+        binding.directions.setOnClickListener {
+            Toast.makeText(requireActivity(), "message$mapFragment", Toast.LENGTH_SHORT).show()
+            mapFragment?.getMapAsync {
                 mMap = it
-                val originLocation = LatLng(originLatitude2, originLongitude2)
+                val originLocation = LatLng(originLatitude, originLongitude)
                 mMap!!.addMarker(MarkerOptions().position(originLocation))
-                val destinationLocation = LatLng(destinationLatitude2, destinationLongitude2)
+                val destinationLocation = LatLng(destinationLatitude, destinationLongitude)
                 mMap!!.addMarker(MarkerOptions().position(destinationLocation))
                 val urll = getDirectionURL(originLocation, destinationLocation, apiKey)
                 GetDirection(urll).execute()
@@ -231,30 +238,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             else -> {}
         }
 
-        /* binding.permissionRequestButton.setOnClickListener {
-             when (permissionRequestType) {
-                 PermissionRequestType.FINE_LOCATION ->
-                     requestFineLocationPermission()
-
-                 PermissionRequestType.BACKGROUND_LOCATION ->
-                     requestBackgroundLocationPermission()
-                 else -> {}
-             }
-         }*/
-
-        //
-
 
     }
 
     private val fineLocationRationalSnackbar by lazy {
         Snackbar.make(
-            binding.directions, R.string.fine_location_permission_rationale, Snackbar.LENGTH_LONG
+            binding.root, R.string.fine_location_permission_rationale, Snackbar.LENGTH_LONG
         ).setAction(R.string.ok) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 requestPermissions(
                     arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                    REQUEST_FINE_LOCATION_PERMISSIONS_REQUEST_CODE
+                    Utils.REQUEST_FINE_LOCATION_PERMISSIONS_REQUEST_CODE
                 )
             }
         }
@@ -262,13 +256,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private val backgroundRationalSnackbar by lazy {
         Snackbar.make(
-            binding.directions,
-            R.string.background_location_permission_rationale,
-            Snackbar.LENGTH_LONG
+            binding.root, R.string.background_location_permission_rationale, Snackbar.LENGTH_LONG
         ).setAction(R.string.ok) {
             requestPermissions(
                 arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
-                REQUEST_BACKGROUND_LOCATION_PERMISSIONS_REQUEST_CODE
+                Utils.REQUEST_BACKGROUND_LOCATION_PERMISSIONS_REQUEST_CODE
             )
         }
     }
@@ -279,11 +271,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         if (permissionApproved) {
             activityListener?.displayLocationUI()
         } else {
-            requestPermissionWithRationale(
+            Utils.requestPermissionWithRationale(
                 Manifest.permission.ACCESS_FINE_LOCATION,
-                REQUEST_FINE_LOCATION_PERMISSIONS_REQUEST_CODE,
+                Utils.REQUEST_FINE_LOCATION_PERMISSIONS_REQUEST_CODE,
                 fineLocationRationalSnackbar,
-                this
+                requireActivity()
             )
         }
     }
@@ -300,27 +292,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         if (permissionApproved) {
             activityListener?.displayLocationUI()
         } else {
-            requestPermissionWithRationale(
+            Utils.requestPermissionWithRationale(
                 Manifest.permission.ACCESS_BACKGROUND_LOCATION,
-                REQUEST_BACKGROUND_LOCATION_PERMISSIONS_REQUEST_CODE,
+                Utils.REQUEST_BACKGROUND_LOCATION_PERMISSIONS_REQUEST_CODE,
                 backgroundRationalSnackbar,
-                this
+                requireActivity()
             )
         }
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
 
-
-// GeeksforGeeks coordinates
+    // GeeksforGeeks coordinates
     private var originLatitude: Double = 28.5021359
     private var originLongitude: Double = 77.4054901
     private var originLatitude2: Double = 24.9012
@@ -372,11 +354,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             if (mMarkerPoints.size >= 2) {
                 mOrigin = mMarkerPoints.get(0)
                 mDestination = mMarkerPoints.get(1)
-                drawRoute(
-                    originLatitude,
-                    originLongitude,
-                    destinationLatitude,
-                    destinationLongitude
+                Utils.drawRoute(
+                    originLatitude2, originLongitude2, destinationLatitude2, destinationLongitude2
                 )
             }
         }
@@ -395,20 +374,19 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
          * onRequestPermissionsResult.
          */
         if (ContextCompat.checkSelfPermission(
-                this.applicationContext, Manifest.permission.ACCESS_FINE_LOCATION
+                requireActivity().applicationContext, Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             locationPermissionGranted = true
         } else {
             ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 111
+                requireActivity(), arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 111
             )
         }
     }
 
     var locationPermissionGranted = false
 
-    @SuppressLint("MissingPermission")
     private fun getDeviceLocation() {
         /*
          * Get the best and most recent location of the device, which may be null in rare
@@ -417,7 +395,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         try {
             if (locationPermissionGranted) {
                 val locationResult = fusedLocationClient.lastLocation
-                locationResult.addOnCompleteListener(this) { task ->
+                locationResult.addOnCompleteListener(requireActivity()) { task ->
                     if (task.isSuccessful) {
                         // Set the map's camera position to the current location of the device.
                         val lastKnownLocation = task.result
@@ -436,8 +414,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                         mMap?.moveCamera(
                             CameraUpdateFactory.newLatLngZoom(
                                 LatLng(
-                                    originLatitude,
-                                    originLongitude
+                                    originLatitude, originLongitude
                                 ), 1.toFloat()
                             )
                         )
@@ -450,28 +427,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    fun showRoute(view: View) {}
     private fun getDirectionURL(origin: LatLng, dest: LatLng, secret: String): String {
         return "https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}" + "&destination=${dest.latitude},${dest.longitude}" + "&sensor=false" + "&mode=driving" + "&key=$secret"
     }
 
 
-
-
-/*    private fun drawRoute() {
-
-        // Getting URL to the Google Directions API
-        val originLocation = LatLng(originLatitude, originLongitude)
-        val desLocation = LatLng(destinationLatitude, destinationLongitude)
-
-        val url: String = getDirectionsUrl(mOrigin!!, mDestination!!)
-        val downloadTask = DownloadTask()
-
-        // Start downloading json data from Google Directions API
-        downloadTask.execute(url)
-    }*/
-
 }
-
-
-
-

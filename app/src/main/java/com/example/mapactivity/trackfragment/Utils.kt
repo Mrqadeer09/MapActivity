@@ -13,24 +13,51 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.mapactivity
+package com.example.mapactivity.trackfragment
 
-import android.Manifest
 import android.app.Activity
-import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Bundle
-import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale
-import androidx.fragment.app.Fragment
+import com.example.mapactivity.DirectionsJSONParser
+import com.example.mapactivity.DownloadTask
+import com.google.android.gms.maps.model.LatLng
 import com.google.android.material.snackbar.Snackbar
 
 /**
  * Helper functions to simplify permission checks/requests.
  */
 object Utils {
-
+    fun decodePolyline(encoded: String): List<LatLng> {
+        val poly = ArrayList<LatLng>()
+        var index = 0
+        val len = encoded.length
+        var lat = 0
+        var lng = 0
+        while (index < len) {
+            var b: Int
+            var shift = 0
+            var result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or (b and 0x1f shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+            lat += dlat
+            shift = 0
+            result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or (b and 0x1f shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+            lng += dlng
+            val latLng = LatLng((lat.toDouble() / 1E5), (lng.toDouble() / 1E5))
+            poly.add(latLng)
+        }
+        return poly
+    }
 
     /**
      * Requests permission and if the user denied a previous request, but didn't check
@@ -39,15 +66,34 @@ object Utils {
      * Note: The Snackbar should have an action to request the permission.
      */
     fun requestPermissionWithRationale(
-        permission: String, requestCode: Int, snackbar: Snackbar, activity: Activity
+        permission: String, requestCode: Int, snackbar: Snackbar?, activity: Activity
     ) {
         val provideRationale = shouldShowRequestPermissionRationale(activity, permission)
 
         if (provideRationale) {
-            snackbar.show()
+            snackbar?.show()
         } else {
             requestPermissions(activity, arrayOf(permission), requestCode)
         }
+    }
+    fun drawRoute(
+        originLatitude: Double?,
+        originLongitude: Double?,
+        destinationLatitude: Double?,
+        destinationLongitude: Double?
+
+
+    ) {
+
+        // Getting URL to the Google Directions API
+        val originLocation = LatLng(originLatitude!!, originLongitude!!)
+        val desLocation = LatLng(destinationLatitude!!, destinationLongitude!!)
+
+        val url: String = DirectionsJSONParser.getDirectionsUrl(originLocation, desLocation)
+        val downloadTask = DownloadTask()
+
+        // Start downloading json data from Google Directions API
+        downloadTask.execute(url)
     }
 
 
