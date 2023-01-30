@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.example.mapactivity">
 
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -43,11 +43,11 @@
             android:name=".MapsActivity"
             android:exported="true"
             android:label="@string/title_activity_maps">
-                 <!--  <intent-filter>
-                       <action android:name="android.intent.action.MAIN" />
+            <!--  <intent-filter>
+                  <action android:name="android.intent.action.MAIN" />
 
-                       <category android:name="android.intent.category.LAUNCHER" />
-                   </intent-filter>-->
+                  <category android:name="android.intent.category.LAUNCHER" />
+              </intent-filter>-->
         </activity>
     </application>
 

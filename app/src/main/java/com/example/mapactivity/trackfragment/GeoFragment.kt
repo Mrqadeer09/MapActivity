@@ -1,7 +1,12 @@
 package com.example.mapactivity.trackfragment
 
 import android.Manifest
-
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.TaskStackBuilder
+import android.content.Context
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
@@ -14,10 +19,13 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import com.example.mapactivity.R
+import com.example.mapactivity.MainActivity
 import com.example.mapactivity.databinding.FragmentGeoBinding
 import com.example.mapactivity.models.PermissionRequestType
 import com.example.mapactivity.tasks.GetDirection
@@ -35,10 +43,14 @@ import com.google.android.libraries.places.api.Places
 import com.google.android.material.snackbar.Snackbar
 import java.text.MessageFormat
 
+import com.example.mapactivity.R
+import java.sql.Date
 
 class GeoFragment : Fragment(), OnMapReadyCallback {
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
 
         binding = FragmentGeoBinding.inflate(layoutInflater, container, false)
         return binding.root
@@ -197,6 +209,7 @@ class GeoFragment : Fragment(), OnMapReadyCallback {
 
 
         binding.directions.setOnClickListener {
+            addNotify()
             Toast.makeText(requireActivity(), "message$mapFragment", Toast.LENGTH_SHORT).show()
             mapFragment?.getMapAsync {
                 mMap = it
@@ -428,6 +441,88 @@ class GeoFragment : Fragment(), OnMapReadyCallback {
     fun showRoute(view: View) {}
     private fun getDirectionURL(origin: LatLng, dest: LatLng, secret: String): String {
         return "https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}" + "&destination=${dest.latitude},${dest.longitude}" + "&sensor=false" + "&mode=driving" + "&key=$secret"
+    }
+
+
+    var notificationManager: NotificationManager? = null
+    fun addNotify() {
+        notificationManager =
+            requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationId = 1
+        val channelId = "channel-01"
+        val title = "Route Notifier"
+        val message = "You're close to your destination!"
+        val importance = NotificationManager.IMPORTANCE_HIGH
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val mChannel = NotificationChannel(channelId, title, importance)
+            notificationManager?.createNotificationChannel(mChannel)
+        }
+
+        val notification = NotificationCompat.Builder(requireContext(), channelId)
+            .setSmallIcon(R.drawable.download).setContentTitle(title).setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).build()
+
+        notificationManager?.notify(notificationId, notification)
+
+
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    fun ll() {
+        val resultIntent = Intent(requireActivity(), MainActivity::class.java)
+        val stackBuilder: TaskStackBuilder = TaskStackBuilder.create(requireActivity())
+        stackBuilder.addParentStack(MainActivity::class.java)
+        stackBuilder.addNextIntent(resultIntent)
+        val resultPendingIntent: PendingIntent =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+
+                stackBuilder.getPendingIntent(0, PendingIntent.FLAG_MUTABLE)
+            } else {
+                stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT)
+            }
+        val notification: NotificationCompat.Builder =
+            NotificationCompat.Builder(requireContext(), "CHANNEL_ID_2")
+                .setSmallIcon(R.drawable.download)
+//                .setLargeIcon(R.drawable.download)
+                .setContentTitle("Title")
+                .setContentText("Text")
+                .setStyle(
+                    NotificationCompat.BigPictureStyle()
+//                        .bigPicture(imgUrl)
+                        .bigLargeIcon(null)
+                )
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(resultPendingIntent)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            notification.setSmallIcon(R.drawable.download)
+            notification.color = resources.getColor(R.color.black)
+        } else {
+            notification.setSmallIcon(R.drawable.download)
+        }
+        val notificationManager = NotificationManagerCompat.from(ApplicationProvider.getApplicationContext<Context>())
+
+        if (ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return
+        }
+        notificationManager.notify(
+            ((Date(System.currentTimeMillis()).time / 1000L % Int.MAX_VALUE).toInt()),
+            notification.build()
+        )
+
     }
 
 

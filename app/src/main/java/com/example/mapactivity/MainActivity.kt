@@ -26,7 +26,8 @@ class MainActivity : AppCompatActivity() {
             ft.add(R.id.fragment_container, newFragment).commit()
         }*/
 
-        val fragment= NotificationFragment();
+//        val fragment= NotificationFragment();
+        val fragment= GeoFragment();
 
         // Open fragment
         getSupportFragmentManager()
