@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.example.mapactivity.trackfragment.GeoFragment
+import com.example.mapactivity.trackfragment.NotificationFragment
 
 @RequiresApi(Build.VERSION_CODES.M)
 class MainActivity : AppCompatActivity() {
@@ -25,7 +26,7 @@ class MainActivity : AppCompatActivity() {
             ft.add(R.id.fragment_container, newFragment).commit()
         }*/
 
-        val fragment= GeoFragment();
+        val fragment= NotificationFragment();
 
         // Open fragment
         getSupportFragmentManager()

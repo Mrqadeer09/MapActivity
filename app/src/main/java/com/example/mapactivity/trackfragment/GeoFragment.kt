@@ -38,9 +38,7 @@ import java.text.MessageFormat
 
 class GeoFragment : Fragment(), OnMapReadyCallback {
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
 
         binding = FragmentGeoBinding.inflate(layoutInflater, container, false)
         return binding.root
